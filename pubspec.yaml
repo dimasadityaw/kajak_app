@@ -1,0 +1,49 @@
+name: kajak
+description: A new Flutter project.
+version: 1.0.0+1
+
+environment: 
+  sdk: '>=2.12.0 <3.0.0'
+
+dependencies: 
+  flutter: 
+    sdk: flutter
+  cached_network_image: ^3.3.0
+  flutter_svg: ^1.1.6
+  intl: ^0.18.0
+  google_fonts: ^4.0.1
+  page_transition: ^2.0.9
+  shared_preferences: ^2.0.13
+  auto_size_text: ^3.0.0
+  awesome_dialog: ^3.2.0
+#  fluttertoast: ^8.2.5
+  image_picker: ^1.0.7
+  flutter_tesseract_ocr: ^0.4.21
+  speech_to_text: ^6.6.0
+  permission_handler: ^11.3.0
+  dropdown_button2: ^2.3.9
+  image_cropper: ^5.0.1
+
+dev_dependencies: 
+  flutter_test: 
+    sdk: flutter
+
+flutter: 
+  uses-material-design: true
+  assets: 
+    - assets/
+    - assets/images/
+    - assets/tessdata/
+  fonts: 
+    - family: Nunito
+      fonts: 
+        - asset: assets/fonts/NunitoBold.ttf
+          weight: 700
+        - asset: assets/fonts/NunitoMedium.ttf
+          weight: 500
+        - asset: assets/fonts/NunitoItalicBold.ttf
+          weight: 700
+        - asset: assets/fonts/NunitoExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/NunitoSemiBold.ttf
+          weight: 600
