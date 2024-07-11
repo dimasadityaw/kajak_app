@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:kajak/theme/theme_helper.dart';
 import 'package:kajak/routes/app_routes.dart';
 
+import 'ConnectivityService.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([
@@ -12,6 +14,7 @@ void main() async {
   ///Please update theme as per your need if required.
   ThemeHelper().changeTheme('primary');
   runApp(MyApp());
+  ConnectivityService.startMonitoring();
 }
 
 class MyApp extends StatelessWidget {
@@ -21,8 +24,7 @@ class MyApp extends StatelessWidget {
       theme: theme,
       title: 'kajak',
       debugShowCheckedModeBanner: false,
-      // DOKUMENTASI
-      // dijalankan ketika pertama membuka apps di arahkan ke route halaman login
+      // dijalankan pas pertama membuka aplikasi dan di arahkan ke route halaman login
       initialRoute: AppRoutes.loginScreen,
       routes: AppRoutes.routes,
     );

@@ -44,6 +44,11 @@ class CustomTextStyles {
         fontWeight: FontWeight.w600,
       );
 
+  static get titleMediumSemiBold2 => theme.textTheme.titleMedium!.copyWith(
+    fontSize: 16.fSize,
+    fontWeight: FontWeight.w700,
+  );
+
   static get titleSmallBold => theme.textTheme.titleSmall!.copyWith(
         fontWeight: FontWeight.w700,
       );

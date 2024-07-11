@@ -1,12 +1,16 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_tesseract_ocr/flutter_tesseract_ocr.dart';
+
 // import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:kajak/ConnectivityService.dart';
 import 'package:kajak/core/app_export.dart';
+import 'package:kajak/presentation/footer/footer.dart';
 import 'package:kajak/widgets/app_bar/appbar_image.dart';
 import 'package:kajak/widgets/app_bar/appbar_title.dart';
 import 'package:kajak/widgets/app_bar/custom_app_bar.dart';
@@ -257,43 +261,53 @@ class _HalamanTerjemahanScreenState extends State<HalamanTerjemahanScreen> {
         .replaceAll('(', '')
         .replaceAll(')', '')
         .toLowerCase();
-    var apiResult = await http
-        .post(Uri.parse('http://kaja.cemzpex.com/api/translate'), body: {
-      'from': from.toString(),
-      'to': to.toString(),
-      'text': textController.text.toString()
-    }, headers: {
-      "Accept": "Application/json",
-      "Authorization": "Bearer $token"
-    });
+    var apiResult = await http.post(
+        Uri.parse('${const String.fromEnvironment('apiUrl')}/translate'),
+        body: {
+          'from': from.toString(),
+          'to': to.toString(),
+          'text': textController.text.toString()
+        },
+        headers: {
+          "Accept": "Application/json",
+          "Authorization": "Bearer $token"
+        });
     var data = json.decode(apiResult.body);
     textOutputController.text = data.toString().trim();
     if (textOutputController.text == '') {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        content: Text('Gaonok terjemahane...'),
+      ));
       // Fluttertoast.showToast(msg: 'Gaonok terjemahane...');
     }
-    print('data');
-    print(data);
-    print(translateFrom
-        .toString()
-        .replaceAll('Bahasa ', '')
-        .replaceAll('Indonesia', 'Indonesian')
-        .replaceAll('Jawa ', '')
-        .replaceAll('(', '')
-        .replaceAll(')', '')
-        .toLowerCase());
-    print(translateTo
-        .toString()
-        .replaceAll('Bahasa ', '')
-        .replaceAll('Indonesia', 'Indonesian')
-        .replaceAll('Jawa ', '')
-        .replaceAll('(', '')
-        .replaceAll(')', '')
-        .toLowerCase());
-    print(textController.text.toString());
+    // print('data');
+    // print(data);
+    // print(translateFrom
+    //     .toString()
+    //     .replaceAll('Bahasa ', '')
+    //     .replaceAll('Indonesia', 'Indonesian')
+    //     .replaceAll('Jawa ', '')
+    //     .replaceAll('(', '')
+    //     .replaceAll(')', '')
+    //     .toLowerCase());
+    // print(translateTo
+    //     .toString()
+    //     .replaceAll('Bahasa ', '')
+    //     .replaceAll('Indonesia', 'Indonesian')
+    //     .replaceAll('Jawa ', '')
+    //     .replaceAll('(', '')
+    //     .replaceAll(')', '')
+    //     .toLowerCase());
+    // print(textController.text.toString());
 
     isLoading = false;
     setState(() {});
   }
+
+  StreamSubscription<bool>? _connectivitySubscription;
+  bool isConnected = true;
 
   @override
   void initState() {
@@ -301,6 +315,12 @@ class _HalamanTerjemahanScreenState extends State<HalamanTerjemahanScreen> {
     _picker = ImagePicker();
     textController.addListener(_onSearchChanged);
     checkSharedPreferences();
+    _connectivitySubscription =
+        ConnectivityService.connectivityStream.listen((status) {
+      setState(() {
+        isConnected = status;
+      });
+    });
     // if (!_speechEnabled) {
     //   _initSpeech();
     // }
@@ -308,6 +328,7 @@ class _HalamanTerjemahanScreenState extends State<HalamanTerjemahanScreen> {
 
   @override
   void dispose() {
+    _connectivitySubscription?.cancel();
     super.dispose();
   }
 
@@ -316,393 +337,387 @@ class _HalamanTerjemahanScreenState extends State<HalamanTerjemahanScreen> {
     mediaQueryData = MediaQuery.of(context);
     return SafeArea(
         child: Scaffold(
-            appBar: CustomAppBar(
-                height: 55.v,
-                leadingWidth: 35.h,
-                leading: AppbarImage(
-                    svgPath: ImageConstant.imgArrowleft,
-                    margin:
-                        EdgeInsets.only(left: 10.h, top: 15.v, bottom: 15.v),
-                    onTap: () {
-                      onTapArrowleftone(context);
-                    }),
-                centerTitle: true,
-                title: AppbarTitle(text: "Terjemahan")),
-            body: SizedBox(
-                width: mediaQueryData.size.width,
-                child: SingleChildScrollView(
-                    padding: EdgeInsets.only(top: 26.v),
-                    child: Padding(
-                        padding: EdgeInsets.only(
-                            left: 24.h, right: 24.h, bottom: 5.v),
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text("Pilih Bahasa",
-                                  style: CustomTextStyles.labelLargeMedium_1),
-                              SizedBox(height: 5.v),
-                              Container(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 7.h, vertical: 10.v),
-                                  decoration: AppDecoration.outlineGray
-                                      .copyWith(
-                                          borderRadius: BorderRadiusStyle
-                                              .roundedBorder10),
-                                  child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Spacer(),
-                                        DropdownButtonHideUnderline(
-                                            child: DropdownButton2<String>(
-                                          isExpanded: true,
-                                          hint: Text(
-                                            'Terjemah dari',
-                                            style: CustomTextStyles
-                                                .labelLargeMedium_1,
-                                          ),
-                                          items: listTranslate
-                                              .map((String item) =>
-                                                  DropdownMenuItem<String>(
-                                                    value: item,
-                                                    child: Text(
-                                                      item,
-                                                      style: (item.toString() ==
-                                                              translateFrom
-                                                                  .toString())
-                                                          ? CustomTextStyles
-                                                              .labelLargeMedium_2
-                                                          : CustomTextStyles
-                                                              .labelLargeMedium_1,
-                                                    ),
-                                                  ))
-                                              .toList(),
-                                          value: translateFrom,
-                                          onChanged: (String? value) async {
-                                            SharedPreferences pref =
-                                                await SharedPreferences
-                                                    .getInstance();
-                                            setState(() {
-                                              translateFrom = value!;
-                                              pref.setString('translateFrom',
-                                                  translateFrom);
-                                            });
-                                          },
-                                          iconStyleData: IconStyleData(
-                                              iconEnabledColor: Colors.grey,
-                                              openMenuIcon:
-                                                  Icon(Icons.arrow_drop_up)),
-                                          buttonStyleData:
-                                              const ButtonStyleData(
-                                            decoration: BoxDecoration(
-                                                color: Colors.white),
-                                            width: 140,
-                                          ),
-                                          dropdownStyleData: DropdownStyleData(
-                                              decoration: BoxDecoration(
-                                                  color: Colors.white)),
-                                          menuItemStyleData:
-                                              const MenuItemStyleData(
-                                            height: 40,
-                                          ),
-                                        )),
-                                        // Text("Bahasa Indonesia",
-                                        //     style: CustomTextStyles
-                                        //         .labelLargeMedium_1),
-                                        Spacer(),
-                                        CustomImageView(
-                                            svgPath:
-                                                ImageConstant.imgArrowright),
-                                        Spacer(),
-                                        DropdownButtonHideUnderline(
-                                            child: DropdownButton2<String>(
-                                          isExpanded: true,
-                                          hint: Text(
-                                            'Terjemah ke',
-                                            style: CustomTextStyles
-                                                .labelLargeMedium_1,
-                                          ),
-                                          items: listTranslate
-                                              .map((String item) =>
-                                                  DropdownMenuItem<String>(
-                                                    value: item,
-                                                    child: Text(
-                                                      item,
-                                                      style: (item.toString() ==
-                                                              translateTo
-                                                                  .toString())
-                                                          ? CustomTextStyles
-                                                              .labelLargeMedium_2
-                                                          : CustomTextStyles
-                                                              .labelLargeMedium_1,
-                                                    ),
-                                                  ))
-                                              .toList(),
-                                          value: translateTo,
-                                          onChanged: (String? value) async {
-                                            SharedPreferences pref =
-                                                await SharedPreferences
-                                                    .getInstance();
-                                            setState(() {
-                                              translateTo = value!;
-                                              pref.setString(
-                                                  'translateTo', translateTo);
-                                            });
-                                          },
-                                          iconStyleData: IconStyleData(
-                                              iconEnabledColor: Colors.grey,
-                                              openMenuIcon:
-                                                  Icon(Icons.arrow_drop_up)),
-                                          buttonStyleData:
-                                              const ButtonStyleData(
-                                            decoration: BoxDecoration(
-                                                color: Colors.white),
-                                            width: 140,
-                                          ),
-                                          dropdownStyleData: DropdownStyleData(
-                                              decoration: BoxDecoration(
-                                                  color: Colors.white)),
-                                          menuItemStyleData:
-                                              const MenuItemStyleData(
-                                            height: 40,
-                                          ),
-                                        )),
-                                        // Padding(
-                                        //     padding: EdgeInsets.only(left: 6.h),
-                                        //     child: Text("Bahasa Jawa (Ngoko)",
-                                        //         style: CustomTextStyles
-                                        //             .labelLargeMedium_1)),
-                                        Spacer(),
-                                        // CustomImageView(
-                                        //     svgPath: ImageConstant.imgArrowdown,
-                                        //     height: 15.adaptSize,
-                                        //     width: 15.adaptSize,
-                                        //     margin: EdgeInsets.only(
-                                        //         right: 2.h, bottom: 2.v))
-                                      ])),
-                              SizedBox(height: 7.v),
-                              Text(translateFrom.toString(),
-                                  style: CustomTextStyles.labelLargeMedium_1),
-                              SizedBox(height: 3.v),
-                              Center(
-                                  child: Stack(
-                                alignment: Alignment.bottomRight,
+      appBar: CustomAppBar(
+          height: 55.v,
+          leadingWidth: 35.h,
+          leading: AppbarImage(
+              svgPath: ImageConstant.imgArrowleft,
+              margin: EdgeInsets.only(left: 10.h, top: 15.v, bottom: 15.v),
+              onTap: () {
+                onTapArrowleftone(context);
+              }),
+          centerTitle: true,
+          title: AppbarTitle(text: "Terjemahan")),
+      body: SizedBox(
+          width: mediaQueryData.size.width,
+          child: SingleChildScrollView(
+              padding: EdgeInsets.only(top: 26.v),
+              child: Padding(
+                  padding:
+                      EdgeInsets.only(left: 24.h, right: 24.h, bottom: 5.v),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Pilih Bahasa",
+                            style: CustomTextStyles.labelLargeMedium_1),
+                        SizedBox(height: 5.v),
+                        Container(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 7.h, vertical: 10.v),
+                            decoration: AppDecoration.outlineGray.copyWith(
+                                borderRadius:
+                                    BorderRadiusStyle.roundedBorder10),
+                            child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      Container(
-                                        alignment: Alignment.center,
-                                        decoration: BoxDecoration(
-                                            border: Border.all(
-                                                color: appTheme.gray300,
-                                                width: 1),
-                                            borderRadius:
-                                                BorderRadius.circular(10.h)),
-                                        child: Container(
-                                          margin: EdgeInsets.only(
-                                              // top: 10.v,
-                                              right: 35.h),
-                                          child: TextField(
-                                            readOnly: (isLoadingOcr == true)
-                                                ? true
-                                                : false,
-                                            keyboardType:
-                                                TextInputType.multiline,
-                                            maxLines: 8,
-                                            style: theme.textTheme.titleMedium,
-                                            controller: textController,
-                                            cursorColor: Colors.grey,
-                                            decoration: InputDecoration(
-                                              border: InputBorder.none,
-                                              contentPadding:
-                                                  EdgeInsets.symmetric(
-                                                      horizontal: 10.h,
-                                                      vertical: 5.v),
-                                              hintText: "",
-                                              hintStyle:
-                                                  CustomTextStyles.labelLarge13,
-                                              isDense: true,
-                                              fillColor:
-                                                  theme.colorScheme.primary,
-                                              focusColor: Colors.transparent,
-                                              hoverColor: Colors.transparent,
-                                            ),
-                                            textInputAction:
-                                                TextInputAction.newline,
-                                          ),
-                                        ),
-                                      ),
-                                      Text(
-                                          (isInputBox == true)
-                                              ? (isLoadingOcr == true)
-                                                  ? "Tunggu..."
-                                                  : "Input Box"
-                                              : '',
-                                          style: CustomTextStyles
-                                              .labelLargeMedium_1)
-                                    ],
-                                  ),
-                                  Padding(
-                                    padding: EdgeInsets.only(
-                                        bottom: 12.v, right: 16.h),
-                                    // margin: EdgeInsets.fromLTRB(
-                                    //     30.h, 10.v, 12.h, 9.v),
-                                    child: Container(
-                                      color: Colors.white,
-                                      child: CustomImageView(
-                                        height: 21.adaptSize,
-                                        onTap: () {
-                                          checkPermissionStorage();
-                                          setState(() {});
-                                        },
-                                        color: Colors.grey,
-                                        svgPath:
-                                            ImageConstant.imgIconmediaimage,
-                                      ),
+                                  Spacer(),
+                                  DropdownButtonHideUnderline(
+                                      child: DropdownButton2<String>(
+                                    isExpanded: true,
+                                    hint: Text(
+                                      'Terjemah dari',
+                                      style:
+                                          CustomTextStyles.labelLargeMedium_1,
                                     ),
-                                  )
-                                ],
-                              )),
-                              // Center(
-                              //   child: SizedBox(
-                              //       height: 160.v,
-                              //       width: 330.h,
-                              //       child: Stack(
-                              //           alignment: Alignment.center,
-                              //           children: [
-                              //             _ocrText == ""
-                              //                 ? Align(
-                              //                     alignment: Alignment.center,
-                              //                     child: Text("Input Box",
-                              //                         style: CustomTextStyles
-                              //                             .labelLargeMedium_1))
-                              //                 : Padding(
-                              //                   padding: const EdgeInsets.all(8.0),
-                              //                   child: Align(
-                              //                       alignment: Alignment.topLeft,
-                              //                       child: Text(_ocrText)),
-                              //                 ),
-                              //             Align(
-                              //                 alignment: Alignment.center,
-                              //                 child: Container(
-                              //                     padding: EdgeInsets.symmetric(
-                              //                         horizontal: 10.h,
-                              //                         vertical: 8.v),
-                              //                     decoration: AppDecoration
-                              //                         .outlineGray300
-                              //                         .copyWith(
-                              //                             borderRadius:
-                              //                                 BorderRadiusStyle
-                              //                                     .roundedBorder10),
-                              //                     child: Row(
-                              //                         mainAxisAlignment:
-                              //                             MainAxisAlignment.end,
-                              //                         crossAxisAlignment:
-                              //                             CrossAxisAlignment
-                              //                                 .end,
-                              //                         children: [
-                              //                           CustomImageView(
-                              //                               onTap: () {
-                              //                                 checkPermissionStorage();
-                              //                                 setState(() {});
-                              //                               },
-                              //                               color: Colors.grey,
-                              //                               svgPath: ImageConstant
-                              //                                   .imgIconmediaimage,
-                              //                               height:
-                              //                                   20.adaptSize,
-                              //                               width: 20.adaptSize,
-                              //                               margin:
-                              //                                   EdgeInsets.only(
-                              //                                       top:
-                              //                                           124.v)),
-                              //                           // CustomImageView(
-                              //                           //     onTap: () {
-                              //                           //       checkPermissionMicrophone();
-                              //                           //       setState(() {});
-                              //                           //     },
-                              //                           //     color: _speechToText
-                              //                           //         .isNotListening
-                              //                           //         ? Colors.grey : Colors.red,
-                              //                           //     svgPath: ImageConstant
-                              //                           //         .imgMicrophone,
-                              //                           //     height: 20.v,
-                              //                           //     width: 14.h,
-                              //                           //     margin:
-                              //                           //         EdgeInsets.only(
-                              //                           //             left: 14.h,
-                              //                           //             top: 124.v))
-                              //                         ])))
-                              //           ])),
-                              // ),
-                              SizedBox(height: 6.v),
-                              Text("Terjemahkan ke " + translateTo.toString(),
-                                  style: CustomTextStyles.labelLargeMedium_1),
-                              SizedBox(height: 4.v),
-                              Center(
-                                  child: Stack(
-                                alignment: Alignment.bottomRight,
-                                children: [
-                                  Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      Container(
-                                        alignment: Alignment.center,
-                                        decoration: BoxDecoration(
-                                            border: Border.all(
-                                                color: appTheme.gray300,
-                                                width: 1),
-                                            borderRadius:
-                                                BorderRadius.circular(10.h)),
-                                        child: TextField(
-                                          keyboardType: TextInputType.multiline,
-                                          maxLines: 8,
-                                          style: theme.textTheme.titleMedium,
-                                          readOnly: true,
-                                          controller: textOutputController,
-                                          cursorColor: Colors.grey,
-                                          decoration: InputDecoration(
-                                            border: InputBorder.none,
-                                            contentPadding:
-                                                EdgeInsets.symmetric(
-                                                    horizontal: 10.h,
-                                                    vertical: 5.v),
-                                            hintText: "",
-                                            hintStyle:
-                                                CustomTextStyles.labelLarge13,
-                                            isDense: true,
-                                            fillColor:
-                                                theme.colorScheme.primary,
-                                            focusColor: Colors.transparent,
-                                            hoverColor: Colors.transparent,
-                                          ),
-                                          textInputAction:
-                                              TextInputAction.newline,
-                                        ),
+                                    items: listTranslate
+                                        .map((String item) =>
+                                            DropdownMenuItem<String>(
+                                              value: item,
+                                              child: Text(
+                                                item,
+                                                style: (item.toString() ==
+                                                        translateFrom
+                                                            .toString())
+                                                    ? CustomTextStyles
+                                                        .labelLargeMedium_2
+                                                    : CustomTextStyles
+                                                        .labelLargeMedium_1,
+                                              ),
+                                            ))
+                                        .toList(),
+                                    value: translateFrom,
+                                    onChanged: (String? value) async {
+                                      SharedPreferences pref =
+                                          await SharedPreferences.getInstance();
+                                      setState(() {
+                                        translateFrom = value!;
+                                        pref.setString(
+                                            'translateFrom', translateFrom);
+                                      });
+                                    },
+                                    iconStyleData: IconStyleData(
+                                        iconEnabledColor: Colors.grey,
+                                        openMenuIcon:
+                                            Icon(Icons.arrow_drop_up)),
+                                    buttonStyleData: const ButtonStyleData(
+                                      decoration:
+                                          BoxDecoration(color: Colors.white),
+                                      width: 140,
+                                    ),
+                                    dropdownStyleData: DropdownStyleData(
+                                        decoration:
+                                            BoxDecoration(color: Colors.white)),
+                                    menuItemStyleData: const MenuItemStyleData(
+                                      height: 40,
+                                    ),
+                                  )),
+                                  // Text("Bahasa Indonesia",
+                                  //     style: CustomTextStyles
+                                  //         .labelLargeMedium_1),
+                                  Spacer(),
+                                  CustomImageView(
+                                      svgPath: ImageConstant.imgArrowright),
+                                  Spacer(),
+                                  DropdownButtonHideUnderline(
+                                      child: DropdownButton2<String>(
+                                    isExpanded: true,
+                                    hint: Text(
+                                      'Terjemah ke',
+                                      style:
+                                          CustomTextStyles.labelLargeMedium_1,
+                                    ),
+                                    items: listTranslate
+                                        .map((String item) =>
+                                            DropdownMenuItem<String>(
+                                              value: item,
+                                              child: Text(
+                                                item,
+                                                style: (item.toString() ==
+                                                        translateTo.toString())
+                                                    ? CustomTextStyles
+                                                        .labelLargeMedium_2
+                                                    : CustomTextStyles
+                                                        .labelLargeMedium_1,
+                                              ),
+                                            ))
+                                        .toList(),
+                                    value: translateTo,
+                                    onChanged: (String? value) async {
+                                      SharedPreferences pref =
+                                          await SharedPreferences.getInstance();
+                                      setState(() {
+                                        translateTo = value!;
+                                        pref.setString(
+                                            'translateTo', translateTo);
+                                      });
+                                    },
+                                    iconStyleData: IconStyleData(
+                                        iconEnabledColor: Colors.grey,
+                                        openMenuIcon:
+                                            Icon(Icons.arrow_drop_up)),
+                                    buttonStyleData: const ButtonStyleData(
+                                      decoration:
+                                          BoxDecoration(color: Colors.white),
+                                      width: 140,
+                                    ),
+                                    dropdownStyleData: DropdownStyleData(
+                                        decoration:
+                                            BoxDecoration(color: Colors.white)),
+                                    menuItemStyleData: const MenuItemStyleData(
+                                      height: 40,
+                                    ),
+                                  )),
+                                  // Padding(
+                                  //     padding: EdgeInsets.only(left: 6.h),
+                                  //     child: Text("Bahasa Jawa (Ngoko)",
+                                  //         style: CustomTextStyles
+                                  //             .labelLargeMedium_1)),
+                                  Spacer(),
+                                  // CustomImageView(
+                                  //     svgPath: ImageConstant.imgArrowdown,
+                                  //     height: 15.adaptSize,
+                                  //     width: 15.adaptSize,
+                                  //     margin: EdgeInsets.only(
+                                  //         right: 2.h, bottom: 2.v))
+                                ])),
+                        SizedBox(height: 7.v),
+                        Text(translateFrom.toString(),
+                            style: CustomTextStyles.labelLargeMedium_1),
+                        SizedBox(height: 3.v),
+                        Center(
+                            child: Stack(
+                          alignment: Alignment.bottomRight,
+                          children: [
+                            Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Container(
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                      border: Border.all(
+                                          color: appTheme.gray300, width: 1),
+                                      borderRadius:
+                                          BorderRadius.circular(10.h)),
+                                  child: Container(
+                                    margin: EdgeInsets.only(
+                                        // top: 10.v,
+                                        right: 35.h),
+                                    child: TextField(
+                                      readOnly:
+                                          (isLoadingOcr == true) ? true : false,
+                                      keyboardType: TextInputType.multiline,
+                                      maxLines: 8,
+                                      style: theme.textTheme.titleMedium,
+                                      controller: textController,
+                                      cursorColor: Colors.grey,
+                                      decoration: InputDecoration(
+                                        border: InputBorder.none,
+                                        contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 10.h, vertical: 5.v),
+                                        hintText: "",
+                                        hintStyle:
+                                            CustomTextStyles.labelLarge13,
+                                        isDense: true,
+                                        fillColor: theme.colorScheme.primary,
+                                        focusColor: Colors.transparent,
+                                        hoverColor: Colors.transparent,
                                       ),
-                                      Text(
-                                          (textOutputController.text == "")
-                                              ? "Output Box"
-                                              : '',
-                                          style: CustomTextStyles
-                                              .labelLargeMedium_1)
-                                    ],
+                                      textInputAction: TextInputAction.newline,
+                                    ),
                                   ),
-                                ],
-                              )),
-                              SizedBox(height: 24.v),
-                              CustomElevatedButton(
+                                ),
+                                Text(
+                                    (isInputBox == true)
+                                        ? (isLoadingOcr == true)
+                                            ? "Tunggu..."
+                                            : "Input Box"
+                                        : '',
+                                    style: CustomTextStyles.labelLargeMedium_1)
+                              ],
+                            ),
+                            Padding(
+                              padding:
+                                  EdgeInsets.only(bottom: 12.v, right: 16.h),
+                              // margin: EdgeInsets.fromLTRB(
+                              //     30.h, 10.v, 12.h, 9.v),
+                              child: Container(
+                                color: Colors.white,
+                                child: CustomImageView(
+                                  height: 21.adaptSize,
                                   onTap: () {
-                                    if (textController.text.toString() != '') {
-                                      _terjemah();
-                                    }
+                                    checkPermissionStorage();
                                     setState(() {});
                                   },
-                                  text: (!isLoading)
-                                      ? "Terjemahkan"
-                                      : "Tunggu...")
-                            ]))))));
+                                  color: Colors.grey,
+                                  svgPath: ImageConstant.imgIconmediaimage,
+                                ),
+                              ),
+                            )
+                          ],
+                        )),
+                        // Center(
+                        //   child: SizedBox(
+                        //       height: 160.v,
+                        //       width: 330.h,
+                        //       child: Stack(
+                        //           alignment: Alignment.center,
+                        //           children: [
+                        //             _ocrText == ""
+                        //                 ? Align(
+                        //                     alignment: Alignment.center,
+                        //                     child: Text("Input Box",
+                        //                         style: CustomTextStyles
+                        //                             .labelLargeMedium_1))
+                        //                 : Padding(
+                        //                   padding: const EdgeInsets.all(8.0),
+                        //                   child: Align(
+                        //                       alignment: Alignment.topLeft,
+                        //                       child: Text(_ocrText)),
+                        //                 ),
+                        //             Align(
+                        //                 alignment: Alignment.center,
+                        //                 child: Container(
+                        //                     padding: EdgeInsets.symmetric(
+                        //                         horizontal: 10.h,
+                        //                         vertical: 8.v),
+                        //                     decoration: AppDecoration
+                        //                         .outlineGray300
+                        //                         .copyWith(
+                        //                             borderRadius:
+                        //                                 BorderRadiusStyle
+                        //                                     .roundedBorder10),
+                        //                     child: Row(
+                        //                         mainAxisAlignment:
+                        //                             MainAxisAlignment.end,
+                        //                         crossAxisAlignment:
+                        //                             CrossAxisAlignment
+                        //                                 .end,
+                        //                         children: [
+                        //                           CustomImageView(
+                        //                               onTap: () {
+                        //                                 checkPermissionStorage();
+                        //                                 setState(() {});
+                        //                               },
+                        //                               color: Colors.grey,
+                        //                               svgPath: ImageConstant
+                        //                                   .imgIconmediaimage,
+                        //                               height:
+                        //                                   20.adaptSize,
+                        //                               width: 20.adaptSize,
+                        //                               margin:
+                        //                                   EdgeInsets.only(
+                        //                                       top:
+                        //                                           124.v)),
+                        //                           // CustomImageView(
+                        //                           //     onTap: () {
+                        //                           //       checkPermissionMicrophone();
+                        //                           //       setState(() {});
+                        //                           //     },
+                        //                           //     color: _speechToText
+                        //                           //         .isNotListening
+                        //                           //         ? Colors.grey : Colors.red,
+                        //                           //     svgPath: ImageConstant
+                        //                           //         .imgMicrophone,
+                        //                           //     height: 20.v,
+                        //                           //     width: 14.h,
+                        //                           //     margin:
+                        //                           //         EdgeInsets.only(
+                        //                           //             left: 14.h,
+                        //                           //             top: 124.v))
+                        //                         ])))
+                        //           ])),
+                        // ),
+                        SizedBox(height: 6.v),
+                        Text("Terjemahkan ke " + translateTo.toString(),
+                            style: CustomTextStyles.labelLargeMedium_1),
+                        SizedBox(height: 4.v),
+                        Center(
+                            child: Stack(
+                          alignment: Alignment.bottomRight,
+                          children: [
+                            Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Container(
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                      border: Border.all(
+                                          color: appTheme.gray300, width: 1),
+                                      borderRadius:
+                                          BorderRadius.circular(10.h)),
+                                  child: TextField(
+                                    keyboardType: TextInputType.multiline,
+                                    maxLines: 8,
+                                    style: theme.textTheme.titleMedium,
+                                    readOnly: true,
+                                    controller: textOutputController,
+                                    cursorColor: Colors.grey,
+                                    decoration: InputDecoration(
+                                      border: InputBorder.none,
+                                      contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 10.h, vertical: 5.v),
+                                      hintText: "",
+                                      hintStyle: CustomTextStyles.labelLarge13,
+                                      isDense: true,
+                                      fillColor: theme.colorScheme.primary,
+                                      focusColor: Colors.transparent,
+                                      hoverColor: Colors.transparent,
+                                    ),
+                                    textInputAction: TextInputAction.newline,
+                                  ),
+                                ),
+                                Text(
+                                    (textOutputController.text == "")
+                                        ? "Output Box"
+                                        : '',
+                                    style: CustomTextStyles.labelLargeMedium_1)
+                              ],
+                            ),
+                          ],
+                        )),
+                        SizedBox(height: 24.v),
+                        CustomElevatedButton(
+                            onTap: () {
+                              if (textController.text.toString() != '') {
+                                if (isConnected) {
+                                  _terjemah();
+                                } else {
+                                  ScaffoldMessenger.of(context)
+                                      .hideCurrentSnackBar();
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(SnackBar(
+                                    backgroundColor: Colors.red,
+                                    behavior: SnackBarBehavior.floating,
+                                    content: Text(
+                                        'Periksa kembali jaringan anda.',
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w600)),
+                                  ));
+                                }
+                              }
+                              setState(() {});
+                            },
+                            text: (!isLoading) ? "Terjemahkan" : "Tunggu...")
+                      ])))),
+      bottomNavigationBar: !isConnected
+          ? Container(
+              color: Colors.red,
+              padding: EdgeInsets.symmetric(vertical: 2.5.h),
+              child: FooterMenu())
+          : SizedBox(),
+    ));
   }
 
   /// Navigates back to the previous screen.
